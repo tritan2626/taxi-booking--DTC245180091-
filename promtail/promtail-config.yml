@@ -1,0 +1,50 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # 1. Scrape Docker Container JSON logs
+  - job_name: docker-containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          app: docker-containers
+          __path__: /var/lib/docker/containers/*/*-json.log
+    pipeline_stages:
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+      - output:
+          source: log
+
+  # 2. Scrape Nginx Access & Error Logs
+  - job_name: nginx-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          app: taxi-nginx
+          __path__: /var/log/nginx/*.log
+
+  # 3. Scrape Shared System/Application Logs
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          __path__: /var/log/*.log
