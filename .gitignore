@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment files
+.env.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Docker & Database storage
+postgres_data/
+grafana_data/
+loki_data/
+
+# OS metadata
+.DS_Store
+Thumbs.db
