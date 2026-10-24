@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taxi Booking Platform - Quản Lý & Đặt Xe Trực Tuyến</title>
+  <meta name="description" content="Giao diện đặt xe taxi và quản lý chuyến đi trực quan cho hệ thống Taxi Booking System">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Subtle animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- ========================================================================= -->
+  <!-- Top Navigation Bar                                                        -->
+  <!-- ========================================================================= -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Branding -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
+            🚕
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-white font-bold text-lg tracking-tight">Taxi Booking System</h1>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                v1.0 Live
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 hidden sm:block">Microservices, Nginx Hardening & Observability Platform</p>
+          </div>
+        </div>
+
+        <!-- System Status & Quick Links -->
+        <div class="flex items-center space-x-4">
+          <div id="connectionStatus" class="flex items-center space-x-2 text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>API Online</span>
+          </div>
+
+          <a href="/metrics" target="_blank" class="hidden md:inline-flex items-center text-xs text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition">
+            📈 Metrics
+          </a>
+          <a href="http://localhost:3000" target="_blank" class="hidden md:inline-flex items-center text-xs text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition">
+            📊 Grafana
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- Main Content Container                                                    -->
+  <!-- ========================================================================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+    
+    <!-- Hero / Stats Bar -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tổng Chuyến</p>
+          <p id="statTotal" class="text-2xl font-extrabold text-slate-900 mt-1">0</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+          📋
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-amber-500 uppercase tracking-wider">Đang Chờ (Pending)</p>
+          <p id="statPending" class="text-2xl font-extrabold text-amber-600 mt-1">0</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+          ⏳
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Hoàn Thành</p>
+          <p id="statCompleted" class="text-2xl font-extrabold text-emerald-600 mt-1">0</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+          ✅
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-rose-500 uppercase tracking-wider">Đã Hủy</p>
+          <p id="statCancelled" class="text-2xl font-extrabold text-rose-600 mt-1">0</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg">
+          ❌
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Grid: Booking Form (Left/Top) & Rides Management Table (Right/Bottom) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- ===================================================================== -->
+      <!-- 1. Form Đặt Xe (Booking Form) - Col 12 on mobile, Col 4 on desktop    -->
+      <!-- ===================================================================== -->
+      <section class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sticky top-24">
+        <div class="flex items-center space-x-2.5 pb-4 mb-5 border-b border-slate-100">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+            ✍️
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Đặt Chuyến Xe Mới</h2>
+            <p class="text-xs text-slate-500">Gọi API: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-amber-600 font-mono">POST /api/rides</code></p>
+          </div>
+        </div>
+
+        <form id="bookingForm" class="space-y-4">
+          <!-- Customer ID -->
+          <div>
+            <label for="customerId" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Mã Khách Hàng (Customer ID) <span class="text-rose-500">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="number" 
+                id="customerId" 
+                name="customer_id" 
+                required 
+                min="1" 
+                placeholder="VD: 1, 2, 3" 
+                value="1"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm text-slate-900 bg-slate-50/50 transition"
+              >
+            </div>
+            <!-- Quick Preset Customers -->
+            <div class="flex items-center space-x-1.5 mt-2 text-[11px] text-slate-500">
+              <span>Chọn nhanh:</span>
+              <button type="button" onclick="setCustomer(1)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition">#1 (Nguyen Van A)</button>
+              <button type="button" onclick="setCustomer(2)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition">#2 (Tran Thi B)</button>
+              <button type="button" onclick="setCustomer(3)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition">#3 (Le Van C)</button>
+            </div>
+          </div>
+
+          <!-- Pickup Location -->
+          <div>
+            <label for="pickupLocation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Điểm Đón (Pickup Location) <span class="text-rose-500">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="pickupLocation" 
+                name="pickup_location" 
+                required 
+                placeholder="VD: Sân bay Tân Sơn Nhất, TP.HCM" 
+                value="Sân bay Tân Sơn Nhất, TP.HCM"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm text-slate-900 bg-slate-50/50 transition"
+              >
+            </div>
+          </div>
+
+          <!-- Dropoff Location -->
+          <div>
+            <label for="dropoffLocation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Điểm Đến (Dropoff Location) <span class="text-rose-500">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="dropoffLocation" 
+                name="dropoff_location" 
+                required 
+                placeholder="VD: Chợ Bến Thành, Quận 1, TP.HCM" 
+                value="Chợ Bến Thành, Quận 1, TP.HCM"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm text-slate-900 bg-slate-50/50 transition"
+              >
+            </div>
+          </div>
+
+          <!-- Fare -->
+          <div>
+            <label for="fare" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Cước Phí (Fare - VNĐ) <span class="text-rose-500">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="number" 
+                id="fare" 
+                name="fare" 
+                required 
+                min="0" 
+                step="1000"
+                placeholder="VD: 120000" 
+                value="120000"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm text-slate-900 bg-slate-50/50 transition"
+              >
+              <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs text-slate-400 font-semibold">
+                VNĐ
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button 
+            type="submit" 
+            id="btnSubmitBooking"
+            class="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-sm shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 active:scale-[0.99] transition duration-150 flex items-center justify-center space-x-2"
+          >
+            <span id="btnIcon">🚀</span>
+            <span id="btnText">Xác Nhận Đặt Xe</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- 2. Danh Sách Chuyến Xe (Rides Table) - Col 12 on mobile, Col 8 on desktop -->
+      <!-- ===================================================================== -->
+      <section class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-5">
+        
+        <!-- Section Header with Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-base font-bold text-slate-900">Danh Sách Chuyến Xe Hiện Có</h2>
+              <span id="badgeCount" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">0 chuyến</span>
+            </div>
+            <p class="text-xs text-slate-500">Gọi API: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">GET /api/rides</code></p>
+          </div>
+
+          <!-- Filter & Refresh Actions -->
+          <div class="flex items-center space-x-2">
+            <select id="statusFilter" onchange="fetchRides()" class="text-xs font-medium bg-slate-50 border border-slate-300 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
+              <option value="">Tất Cả Trạng Thái</option>
+              <option value="PENDING">PENDING (Chờ nhận)</option>
+              <option value="ACCEPTED">ACCEPTED (Đã nhận)</option>
+              <option value="IN_PROGRESS">IN_PROGRESS (Đang đi)</option>
+              <option value="COMPLETED">COMPLETED (Hoàn thành)</option>
+              <option value="CANCELLED">CANCELLED (Đã hủy)</option>
+            </select>
+
+            <button 
+              onclick="fetchRides()" 
+              title="Làm mới dữ liệu" 
+              class="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition"
+            >
+              🔄
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Toast Box -->
+        <div id="toastMessage" class="hidden transition duration-300"></div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                <th class="py-3 px-3.5">ID</th>
+                <th class="py-3 px-3.5">Khách Hàng</th>
+                <th class="py-3 px-3.5">Điểm Đón & Trả</th>
+                <th class="py-3 px-3.5">Cước Phí</th>
+                <th class="py-3 px-3.5">Trạng Thái</th>
+                <th class="py-3 px-3.5 text-center">Hành Động Nhanh</th>
+              </tr>
+            </thead>
+            <tbody id="ridesTableBody" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Loading Skeleton / Empty state -->
+              <tr>
+                <td colspan="6" class="text-center py-10 text-slate-400">
+                  <div class="inline-block animate-spin text-xl mb-2">⏳</div>
+                  <p>Đang tải danh sách chuyến xe từ server...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Quick Help / API explanation -->
+        <div class="bg-amber-50/60 rounded-xl p-3.5 border border-amber-200/60 text-xs text-amber-900 flex items-start space-x-2.5">
+          <span class="text-base">💡</span>
+          <div>
+            <span class="font-bold">Mẹo thử nghiệm:</span> Bấm nút 
+            <span class="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300">Hoàn thành</span> 
+            hoặc 
+            <span class="inline-block px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-semibold border border-rose-300">Hủy chuyến</span> 
+            để kích hoạt endpoint <code class="font-mono bg-white px-1 py-0.5 rounded text-slate-800">PATCH /api/rides/:id/status</code>. Hệ thống sẽ tự động cập nhật cả Metrics Prometheus tương ứng!
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- Footer                                                                    -->
+  <!-- ========================================================================= -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="font-medium text-slate-600">Taxi Booking Platform &bull; Dockerized Microservices &bull; Hardening & Observability</p>
+      <p class="mt-1 text-slate-400">REST API &bull; PostgreSQL &bull; Nginx Rate Limiting &bull; Prometheus &bull; Grafana &bull; Loki</p>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- Frontend Javascript Logic                                                 -->
+  <!-- ========================================================================= -->
+  <script>
+    const API_BASE = '/api';
+
+    // Helper: Format VNĐ Currency
+    function formatCurrency(amount) {
+      if (isNaN(amount)) return '0 ₫';
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    }
+
+    // Helper: Format Date
+    function formatDate(isoString) {
+      if (!isoString) return '--';
+      const d = new Date(isoString);
+      return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
+             d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    }
+
+    // Quick set customer ID from preset buttons
+    function setCustomer(id) {
+      document.getElementById('customerId').value = id;
+    }
+
+    // Show Notification Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toastMessage');
+      toast.className = `p-3.5 rounded-xl border text-xs font-medium flex items-center justify-between mb-4 animate-fade-in ${
+        type === 'success' 
+          ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+          : 'bg-rose-50 text-rose-800 border-rose-200'
+      }`;
+      toast.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <span>${type === 'success' ? '✅' : '⚠️'}</span>
+          <span>${message}</span>
+        </div>
+        <button onclick="document.getElementById('toastMessage').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+      `;
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Get Status Badge HTML
+    function getStatusBadge(status) {
+      const st = (status || 'PENDING').toUpperCase();
+      switch (st) {
+        case 'COMPLETED':
+          return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">✅ COMPLETED</span>`;
+        case 'CANCELLED':
+          return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-200">❌ CANCELLED</span>`;
+        case 'IN_PROGRESS':
+          return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cyan-100 text-cyan-800 border border-cyan-200">🚕 IN_PROGRESS</span>`;
+        case 'ACCEPTED':
+          return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">👌 ACCEPTED</span>`;
+        case 'PENDING':
+        default:
+          return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">⏳ PENDING</span>`;
+      }
+    }
+
+    // Fetch and Render Rides List
+    async function fetchRides() {
+      const filter = document.getElementById('statusFilter').value;
+      const url = filter ? `${API_BASE}/rides?status=${encodeURIComponent(filter)}` : `${API_BASE}/rides`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.success) {
+          throw new Error(data.message || 'Không thể tải danh sách chuyến xe');
+        }
+
+        const rides = data.data || [];
+        renderRidesTable(rides);
+        updateStatistics(rides);
+      } catch (err) {
+        console.error('Error fetching rides:', err);
+        document.getElementById('ridesTableBody').innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-8 text-rose-500">
+              <p class="font-semibold">⚠️ Không thể kết nối tới Backend API</p>
+              <p class="text-xs text-slate-400 mt-1">${err.message}</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Update Top Metric Counters
+    function updateStatistics(rides) {
+      let total = rides.length;
+      let pending = 0;
+      let completed = 0;
+      let cancelled = 0;
+
+      rides.forEach(r => {
+        const s = (r.status || '').toUpperCase();
+        if (s === 'PENDING') pending++;
+        else if (s === 'COMPLETED') completed++;
+        else if (s === 'CANCELLED') cancelled++;
+      });
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statCompleted').textContent = completed;
+      document.getElementById('statCancelled').textContent = cancelled;
+      document.getElementById('badgeCount').textContent = `${total} chuyến`;
+    }
+
+    // Render Table Body
+    function renderRidesTable(rides) {
+      const tbody = document.getElementById('ridesTableBody');
+      if (!rides || rides.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-10 text-slate-400">
+              <p class="text-sm">Chưa có chuyến xe nào phù hợp bộ lọc.</p>
+              <p class="text-xs text-slate-400 mt-1">Hãy sử dụng Form bên trái để đặt chuyến xe mới!</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = rides.map(ride => {
+        const isFinal = ride.status === 'COMPLETED' || ride.status === 'CANCELLED';
+        return `
+          <tr class="hover:bg-slate-50/80 transition duration-100">
+            <!-- ID -->
+            <td class="py-3.5 px-3.5 font-mono font-bold text-slate-900">
+              #${ride.id}
+            </td>
+
+            <!-- Customer -->
+            <td class="py-3.5 px-3.5">
+              <div class="font-semibold text-slate-900">${ride.customer_name || 'Khách #' + ride.customer_id}</div>
+              <div class="text-[11px] text-slate-400">${ride.customer_phone || 'Mã KH: ' + ride.customer_id}</div>
+            </td>
+
+            <!-- Pickup & Dropoff -->
+            <td class="py-3.5 px-3.5 max-w-xs space-y-1">
+              <div class="flex items-center text-slate-700 truncate" title="${ride.pickup_location}">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 flex-shrink-0"></span>
+                <span class="truncate">${ride.pickup_location}</span>
+              </div>
+              <div class="flex items-center text-slate-600 truncate" title="${ride.dropoff_location}">
+                <span class="w-2 h-2 rounded-full bg-amber-500 mr-1.5 flex-shrink-0"></span>
+                <span class="truncate">${ride.dropoff_location}</span>
+              </div>
+            </td>
+
+            <!-- Fare -->
+            <td class="py-3.5 px-3.5 font-semibold text-slate-900">
+              ${formatCurrency(ride.fare)}
+            </td>
+
+            <!-- Status -->
+            <td class="py-3.5 px-3.5">
+              ${getStatusBadge(ride.status)}
+              <div class="text-[10px] text-slate-400 mt-1">${formatDate(ride.created_at)}</div>
+            </td>
+
+            <!-- Quick Action Buttons -->
+            <td class="py-3.5 px-3.5 text-center">
+              <div class="inline-flex items-center justify-center space-x-1.5">
+                <button 
+                  onclick="updateStatus(${ride.id}, 'COMPLETED')" 
+                  ${ride.status === 'COMPLETED' ? 'disabled' : ''}
+                  title="Chuyển sang COMPLETED"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 ${
+                    ride.status === 'COMPLETED'
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                      : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-sm shadow-emerald-600/20'
+                  }"
+                >
+                  <span>✓</span>
+                  <span>Xong</span>
+                </button>
+
+                <button 
+                  onclick="updateStatus(${ride.id}, 'CANCELLED')" 
+                  ${ride.status === 'CANCELLED' ? 'disabled' : ''}
+                  title="Chuyển sang CANCELLED"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 ${
+                    ride.status === 'CANCELLED'
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                      : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 active:scale-95'
+                  }"
+                >
+                  <span>✕</span>
+                  <span>Hủy</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Call PATCH /api/rides/:id/status
+    async function updateStatus(rideId, newStatus) {
+      try {
+        const res = await fetch(`${API_BASE}/rides/${rideId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || `Lỗi cập nhật chuyến đi #${rideId}`);
+        }
+
+        showToast(`Chuyến đi #${rideId} đã chuyển trạng thái sang "${newStatus}" thành công!`, 'success');
+        fetchRides();
+      } catch (err) {
+        console.error('Error updating status:', err);
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Call POST /api/rides
+    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('btnSubmitBooking');
+      const btnText = document.getElementById('btnText');
+      const btnIcon = document.getElementById('btnIcon');
+
+      const customer_id = parseInt(document.getElementById('customerId').value, 10);
+      const pickup_location = document.getElementById('pickupLocation').value.trim();
+      const dropoff_location = document.getElementById('dropoffLocation').value.trim();
+      const fare = parseFloat(document.getElementById('fare').value);
+
+      if (!customer_id || !pickup_location || !dropoff_location) {
+        showToast('Vui lòng điền đầy đủ các trường bắt buộc!', 'error');
+        return;
+      }
+
+      // Set loading state
+      btn.disabled = true;
+      btnIcon.textContent = '⏳';
+      btnText.textContent = 'Đang xử lý đặt xe...';
+
+      try {
+        const res = await fetch(`${API_BASE}/rides`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customer_id,
+            pickup_location,
+            dropoff_location,
+            fare,
+            status: 'PENDING',
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Lỗi khi tạo chuyến xe');
+        }
+
+        showToast(`🎉 Đặt chuyến xe mới #${data.data.id} thành công! Trạng thái: PENDING.`, 'success');
+
+        // Reset form to sensible defaults
+        document.getElementById('pickupLocation').value = '120 Lê Duẩn, Đà Nẵng';
+        document.getElementById('dropoffLocation').value = 'Sân bay Quốc tế Đà Nẵng';
+        document.getElementById('fare').value = '85000';
+
+        // Refresh rides list
+        fetchRides();
+      } catch (err) {
+        console.error('Booking error:', err);
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btnIcon.textContent = '🚀';
+        btnText.textContent = 'Xác Nhận Đặt Xe';
+      }
+    });
+
+    // Initial load
+    fetchRides();
+
+    // Auto-refresh every 10 seconds to keep live metrics in sync
+    setInterval(fetchRides, 10000);
+  </script>
+</body>
+</html>
